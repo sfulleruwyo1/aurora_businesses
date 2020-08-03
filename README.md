@@ -1,15 +1,18 @@
-# aurora_businesses
-Aurora Businesses by city council ward
+# Aurora Businesses
+Aurora businesses by city council ward
 
 ## Data Sources
-City of Aurora, CO GIS Open Data Portal
+[City of Aurora, CO GIS Open Data Portal](http://data-auroraco.opendata.arcgis.com/)
 
 ## Scripts and Data transformation
-convert shapefiles to WGS-84 and to GeoJSON
+Convert shapefiles to WGS-84 and to GeoJSON, filter fields and export as a geojson
+```
 mapshaper Businesses_-_Retail_Trade.shp -proj wgs84 -filter-fields Business_A,Business_N,NAICS_Sect -o format=geojson ../data/retail_businesses.json
-mapshaper City_Council_Wards.shp -proj wgs84 -o format=geojson ../data/city_council_wards.json
 
-extract colors from carto colors
+mapshaper City_Council_Wards.shp -proj wgs84 -o format=geojson ../data/city_council_wards.json
+```
+
+### Extract colors from carto colors
 ```Javascript
 import fs from 'fs';
 import chalk from 'chalk';
@@ -44,4 +47,10 @@ function writeOutFile(outputData) {
         console.log(chalk.blue('data/bluYlColors.json written to file'));
     });
 }
+```
+
+### Point in Polygon Analysis
+Calculate total retail businesses per city council ward
+```
+mapshaper city_council_wards.json -join retail_businesses.json calc='count = count()' fields=count -o format=geojson ../data/city_council_wards_joined.json
 ```
