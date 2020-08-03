@@ -1,0 +1,245 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Aurora Businesses</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css" />
+    <link rel="stylesheet" href="libs/Leaflet.markercluster/MarkerCluster.Default.css"> />
+    <link rel="stylesheet" href="libs/Leaflet.markercluster/MarkerCluster.css"> />
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            width: 100%;
+            top: 0;
+            bottom: 0;
+        }
+
+        #ui {
+            position: absolute;
+            z-index: 1000;
+            /* place above map */
+            bottom: 18px;
+            right: 18px;
+            padding: 6px 12px;
+            background: #2F4F4F;
+        }
+
+        #ui ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #ui li {
+            margin-bottom: 6px;
+        }
+
+        #ui a {
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        #ui a:hover {
+            font-weight: bold;
+        }
+
+        #ui h3,
+        h4 {
+            color: white;
+        }
+
+        .highlight {
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="map"></div>
+    <div id="ui">
+        <h3>Aurora City Council Wards</h3>
+        <h4>(Number of Businesses)</h4>
+        <ul id="legend-list"></ul>
+    </div>
+
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"></script>
+    <script src="libs/Leaflet.markercluster/leaflet.markercluster.js"></script>
+    <script>
+        // map options
+        const options = {
+            center: [39.67046353361311, -104.74262237548828],
+            zoom: 12
+        }
+        // instantiate Leaflet map
+        const map = L.map('map', options);
+
+        // add CARTO voyager tiles with no labels
+        L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/voyager_nolabels/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy;<a href="https://carto.com/attribution">CARTO</a>'
+        }).addTo(map);
+
+
+
+        // d3.json('data/us-counties.json').then((data) => {
+        //     L.geoJson(data).addTo(map)
+        // });
+
+        const councilData = d3.json('data/city_council_wards.json');
+        const colorsData = d3.json('data/bluYlColors.json');
+        const businessData = d3.json('data/retail_businesses.json');
+
+        //use promise to wait until data is loaded
+        Promise.all([councilData, colorsData, businessData]).then(drawMap);
+
+        function drawMap(data) {
+            //function is called when promise is resolved
+
+            //inspect array of data
+            //console.log(data);
+
+            //pull out seperate data arrays and assign to variables
+            const wards = data[0];
+            const colors = data[1];
+            const businesses = data[2];
+
+            //store a reference to the list
+            const legendList = document.querySelector('#legend-list');
+
+            //loop through the features and create a new list
+            for (let i = 1; i <= wards.features.length; i++) {
+                legendList.innerHTML = legendList.innerHTML + '<li class="legend-item" id="ward-' + i +
+                    '"><a style="color:' + colors.BluYl[7][i - 1] + '" href="#">Ward ' + i +
+                    ' (<span></span>)</a></li>';
+            }
+
+            //convert GeoJSON to Leaflet L.geoJson() and add to the map
+            const wardLayerGroup = L.geoJson(wards, {
+                style: function (feature) {
+                    // use the colors object to style each polygon a unique color
+                    return {
+                        color: colors.BluYl[7][feature.properties.WARD - 1],
+                        fillOpacity: .6
+                    }
+                },
+                onEachFeature(feature, layer) {
+                    // select each legend list item span and append the total count of signals
+                    //console.log(feature);
+                    let span = document.querySelector('#ward-' + feature.properties.WARD + ' span');
+                    span.innerHTML = feature.properties.count;
+
+                    //when mousing over a polygon layer
+                    layer.on('mouseover', function () {
+                        // provide a visual affordance
+                        this.setStyle({
+                            fillOpacity: .8
+                        });
+
+                        // select the cooresponding list item
+                        // and add the highlight class to make bold
+                        let wardElem = document.querySelector('#ward-' + feature.properties
+                            .WARD);
+                        wardElem.classList.add('highlight');
+
+                    })
+
+                    //when mousing over a polygon layer
+                    layer.on('mouseout', function () {
+                        // provide a visual affordance
+                        this.setStyle({
+                            fillOpacity: .6
+                        });
+
+                        // select the cooresponding list item
+                        // and add the highlight class to make bold
+                        let wardElem = document.querySelector('#ward-' + feature.properties
+                            .WARD);
+                        wardElem.classList.remove('highlight');
+
+                    })
+                }
+            }).addTo(map);
+
+            // select all the list items and on mouseover
+            //Vanilla js event was not bubbling up to the parent element, kept selecting the a tag and span....  switched to jquery...
+            //legendItem.addEventListener('mouseover', (e)=>{
+            $('.legend-item').on('mouseover', function () {
+
+                // extract the specific number from the specific item
+                // being moused over
+                let num = this.id.replace('ward-', '');
+                // send this number as an argument to the highlightDistrict function
+                highlightDistrict(num);
+            });
+
+            function highlightDistrict(districtNum) {
+                // loop through the districts polygons
+                wardLayerGroup.eachLayer(function (layer) {
+                    // if the district id matches the one we're mousing over
+                    if (layer.feature.properties.WARD == districtNum) {
+                        // change the layer style
+                        layer.setStyle({
+                            fillOpacity: .8
+                        }).bringToFront();
+                    } else {
+                        // return to original
+                        layer.setStyle({
+                            fillOpacity: .6
+                        });
+                    }
+                });
+            }
+
+            $('.legend-item').on('click', function () {
+                let num = this.id.replace('ward-', '');
+
+                zoomToDistrict(num)
+            })
+
+            function zoomToDistrict(districtNum) {
+                wardLayerGroup.eachLayer(function (layer) {
+                    // if the district id matches the one we're mousing over
+                    if (layer.feature.properties.WARD === districtNum) {
+                        // change the layer style
+                        map.fitBounds(layer.getBounds());
+                    }
+                });
+            }
+
+            //L.geoJson(signals).addTo(map);
+            //create new markerClusterGroup
+            const markers = L.markerClusterGroup();
+
+            //loop through all our signals features
+            businesses.features.forEach(function (feature) {
+                //creat a new leaflet marker
+                if (feature.geometry != null) {
+                    let coords = feature.geometry.coordinates;
+                    let marker = L.marker([coords[1], coords[0]]);
+
+                    //bind a tooltip to the marker
+                    marker.bindTooltip("Signal ID: " + feature.properties.SIGNAL_ID);
+
+                    //add the marker to the marker cluster group
+                    markers.addLayer(marker);
+                }
+
+            });
+            map.addLayer(markers);
+
+        }
+    </script>
+</body>
+
+</html>
