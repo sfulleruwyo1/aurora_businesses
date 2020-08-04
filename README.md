@@ -12,6 +12,15 @@ mapshaper Businesses_-_Retail_Trade.shp -proj wgs84 -filter-fields Business_A,Bu
 mapshaper City_Council_Wards.shp -proj wgs84 -o format=geojson ../data/city_council_wards.json
 ```
 
+Reproduced output. Commands from within data/ directory:
+
+```bash
+mapshaper ../project_files/City_Council_Wards.shp -proj wgs84 -o format=geojson precision=.000001 wards.json
+
+mapshaper ../project_files/Businesses_-_Retail_Trade.shp -proj wgs84 -o format=geojson precision=.000001 stores.json
+
+```
+
 ### Extract colors from carto colors
 ```Javascript
 import fs from 'fs';
@@ -50,7 +59,11 @@ function writeOutFile(outputData) {
 ```
 
 ### Point in Polygon Analysis
+
 Calculate total retail businesses per city council ward
-```
-mapshaper city_council_wards.json -join retail_businesses.json calc='count = count()' fields=count -o format=geojson ../data/city_council_wards_joined.json
+
+```bash
+~mapshaper city_council_wards.json -join retail_businesses.json calc='count = count()' fields=count -o format=geojson ../data/city_council_wards_joined.json~
+
+mapshaper wards.json -join stores.json calc='join_count = count()' -o wards_with_counts.json
 ```
