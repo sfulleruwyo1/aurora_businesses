@@ -90,11 +90,6 @@
         }).addTo(map);
 
 
-
-        // d3.json('data/us-counties.json').then((data) => {
-        //     L.geoJson(data).addTo(map)
-        // });
-
         const councilData = d3.json('data/city_council_wards.json');
         const colorsData = d3.json('data/bluYlColors.json');
         const businessData = d3.json('data/retail_businesses.json');
@@ -105,8 +100,6 @@
         function drawMap(data) {
             //function is called when promise is resolved
 
-            //inspect array of data
-            //console.log(data);
 
             //pull out seperate data arrays and assign to variables
             const wards = data[0];
@@ -118,7 +111,7 @@
 
             //loop through the features and create a new list
             for (let i = 1; i <= wards.features.length; i++) {
-                legendList.innerHTML = legendList.innerHTML + '<li class="legend-item" id="ward-' + i +
+                legendList.innerHTML += '<li class="legend-item" id="ward-' + i +
                     '"><a style="color:' + colors.BluYl[7][i - 1] + '" href="#">Ward ' + i +
                     ' (<span></span>)</a></li>';
             }
@@ -162,9 +155,7 @@
 
                         // select the cooresponding list item
                         // and add the highlight class to make bold
-                        let wardElem = document.querySelector('#ward-' + feature.properties
-                            .WARD);
-                        wardElem.classList.remove('highlight');
+                        document.querySelector('#ward-' + feature.properties.WARD).classList.remove('highlight');
 
                     })
                 }
@@ -228,7 +219,8 @@
                     let marker = L.marker([coords[1], coords[0]]);
 
                     //bind a tooltip to the marker
-                    marker.bindTooltip("Signal ID: " + feature.properties.SIGNAL_ID);
+                    console.log(feature)
+                    marker.bindTooltip("NAICS Sector: " + feature.properties.NAICS_Sect);
 
                     //add the marker to the marker cluster group
                     markers.addLayer(marker);
