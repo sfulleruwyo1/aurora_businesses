@@ -228,7 +228,8 @@
                     let marker = L.marker([coords[1], coords[0]]);
 
                     //bind a tooltip to the marker
-                    marker.bindTooltip("Signal ID: " + feature.properties.SIGNAL_ID);
+                    console.log(feature)
+                    marker.bindTooltip("NAICS Sector: " + feature.properties.NAICS_Sect);
 
                     //add the marker to the marker cluster group
                     markers.addLayer(marker);
